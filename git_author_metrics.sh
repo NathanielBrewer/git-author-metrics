@@ -96,6 +96,64 @@ process_branch() {
   done <<< "$commits"
 }
 
+extract_project_name() {
+  local url="$1"
+  # Remove everything up to the last ':' or '/' and then trim the .git suffix if present.
+  local project="${url##*[:/]}"
+  project="${project%.git}"
+
+  if [ -z "$project" ]; then
+    console_and_file_log "Error: Could not extract project name from URL '$url'. Exiting."
+    exit 1
+  fi
+
+  echo "$project"
+}
+
+process_repository_url() {
+  PROJECTS_DIR="/app/git-author-metrics/projects"
+  if ! test -d "$PROJECTS_DIR"; then
+    mkdir -p "$PROJECTS_DIR"
+  fi
+  cd "$PROJECTS_DIR" || { console_and_file_log "Failed to change directory to $PROJECTS_DIR"; return 1; }
+
+  local repo_url="$1"
+  local project_name
+  project_name=$(extract_project_name "$repo_url")
+  
+  git clone "$repo_url"
+  
+  if ! test -d "./$project_name"; then
+    console_and_file_log "Error cloning repo='$repo_url'"
+    return 1
+  fi
+  
+  cd "./$project_name" || { console_and_file_log "Failed to enter project directory $project_name"; return 1; }
+
+  # Fetch all remotes
+  git fetch --all > /dev/null 2>> "$LOG_FILE"
+  if [ $? -ne 0 ]; then
+    console_and_file_log "Error: Failed to fetch branches in repository '$repo_url'."
+    return 1
+  fi
+
+  local default_remote
+  default_remote=$(git remote | grep -E "^origin$" || git remote | head -n1)
+  if [ -z "$default_remote" ]; then
+    console_and_file_log "Error: No remote found in repository."
+    return 1
+  fi
+
+  # Get all branches for the current remote
+  local branches
+  branches=$(git branch -r | awk -v remote="$default_remote" '!/->/ && $1 ~ "^"remote"/" {sub("^"remote"/", ""); print}')
+
+  # Process each branch
+  for branch in $branches; do
+    process_branch "$branch"
+  done
+}
+
 process_repository() {
   local repo_path=$1
 
@@ -124,9 +182,6 @@ process_repository() {
   # Get all branches for the current remote
 local branches=$(git branch -r | awk -v remote="$default_remote" '!/->/ && $1 ~ "^"remote"/" {sub("^"remote"/", ""); print}')
 
-
-
-
   # Process each branch
   for branch in $branches; do
     process_branch "$branch"
@@ -135,7 +190,7 @@ local branches=$(git branch -r | awk -v remote="$default_remote" '!/->/ && $1 ~ 
 
 # Process each repo
 for repo in "${REPOS[@]}"; do
-  process_repository "$repo"
+  process_repository_url "$repo"
 done
 
 # Calculate aggregate metrics
