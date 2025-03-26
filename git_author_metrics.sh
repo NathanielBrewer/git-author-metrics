@@ -122,16 +122,21 @@ process_repository_url() {
   project_name=$(extract_project_name "$repo_url")
 
   console_log "project_name='$project_name', repo_url='$repo_url'"
-    
-  if ! git clone "$repo_url"; then
-    console_and_file_log "Error cloning repo='$repo_url'"
-    return 1
-  fi
-  
-  cd "./$project_name" || { console_and_file_log "Failed to enter project directory $project_name"; return 1; }
 
-  # Fetch all remotes
+  if [ -d "$project_name" ]; then
+    console_and_file_log "Repository '$project_name' already exists locally. No need to clone"
+    cd "$project_name" || { console_and_file_log "Failed to enter project directory $project_name"; return 1; }
+  else
+    if ! git clone "$repo_url"; then
+      console_and_file_log "Error: Failed to clone repository '$repo_url'."
+      return 1
+    fi
+    cd "$project_name" || { console_and_file_log "Failed to enter project directory $project_name"; return 1; }
+  fi
+
   git fetch --all > /dev/null 2>> "$LOG_FILE"
+  git pull --all > /dev/null 2>> "$LOG_FILE"
+
   if [ $? -ne 0 ]; then
     console_and_file_log "Error: Failed to fetch branches in repository '$repo_url'."
     return 1
@@ -157,6 +162,7 @@ process_repository_url() {
   cd ..
   rm -rf "./$PROJECTS_DIR"
 }
+
 
 process_repository() {
   local repo_path=$1
