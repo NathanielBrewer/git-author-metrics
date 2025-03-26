@@ -21,7 +21,7 @@ console_and_file_log() {
 
 # Check for arguments
 if [ "$#" -lt 4 ]; then
-  console_log "Usage: $0 <start-date-yyyy-mm-dd> <end-date-yyyy-mm-dd> <author-name> <repo1> [repo2 ... repoN]\n" >&2
+  console_log "Usage: $0 <start-date-yyyy-mm-dd> <end-date-yyyy-mm-dd> <author-name> <repo_url_1> [repo_url_2 ... repo_url_N]\n" >&2
   exit 1
 fi
 
