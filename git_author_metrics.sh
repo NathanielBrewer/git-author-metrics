@@ -120,10 +120,10 @@ process_repository_url() {
   local repo_url="$1"
   local project_name
   project_name=$(extract_project_name "$repo_url")
-  
-  git clone "$repo_url"
-  
-  if ! test -d "./$project_name"; then
+
+  console_log "project_name='$project_name', repo_url='$repo_url'"
+    
+  if ! git clone "$repo_url"; then
     console_and_file_log "Error cloning repo='$repo_url'"
     return 1
   fi
