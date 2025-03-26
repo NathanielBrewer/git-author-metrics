@@ -152,6 +152,10 @@ process_repository_url() {
   for branch in $branches; do
     process_branch "$branch"
   done
+
+  cd "$PROJECTS_DIR"
+  cd ..
+  rm -rf "./$PROJECTS_DIR"
 }
 
 process_repository() {
