@@ -180,7 +180,7 @@ process_repository() {
   fi
 
   # Get all branches for the current remote
-local branches=$(git branch -r | awk -v remote="$default_remote" '!/->/ && $1 ~ "^"remote"/" {sub("^"remote"/", ""); print}')
+  local branches=$(git branch -r | awk -v remote="$default_remote" '!/->/ && $1 ~ "^"remote"/" {sub("^"remote"/", ""); print}')
 
   # Process each branch
   for branch in $branches; do
