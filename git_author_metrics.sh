@@ -219,17 +219,18 @@ else
   AVG_LENGTH=0
 fi
 
-SUMMARY_TABLE=$(cat <<EOF
-
-Metric                          | Value
-------------------------------  | ----------
-Commits                         | $TOTAL_COMMITS
-Average message length (chars)  | $(printf "%.2f" "$AVG_LENGTH")
-Max message length (chars)      | $MAX_LENGTH
-Min message length (chars)      | $MIN_LENGTH
-Total lines added               | $TOTAL_ADDED
-Total lines removed             | $TOTAL_REMOVED
+# Build JSON output
+JSON_OUTPUT=$(cat <<EOF
+{
+  "commits": $TOTAL_COMMITS,
+  "averageMessageLength": $(printf "%.2f" "$AVG_LENGTH"),
+  "maxMessageLength": $MAX_LENGTH,
+  "minMessageLength": $MIN_LENGTH,
+  "totalLinesAdded": $TOTAL_ADDED,
+  "totalLinesRemoved": $TOTAL_REMOVED
+}
 EOF
 )
 
-console_and_file_log "$SUMMARY_TABLE"
+# Print JSON output to stdout so that a Node.js caller can capture it
+echo "$JSON_OUTPUT"
