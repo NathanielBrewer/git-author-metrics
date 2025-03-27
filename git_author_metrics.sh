@@ -2,7 +2,6 @@
 
 # Determine the directory where the script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
 SCRIPT_NAME="$(basename "${BASH_SOURCE[0]}" .sh)"
 LOG_FILE="${SCRIPT_DIR}/${SCRIPT_NAME}.log"
 
@@ -21,7 +20,7 @@ console_and_file_log() {
 
 # Check for arguments
 if [ "$#" -lt 4 ]; then
-  console_log "Usage: $0 <start-date-yyyy-mm-dd> <end-date-yyyy-mm-dd> <author-name> <repo_url_1> [repo_url_2 ... repo_url_N]\n" >&2
+  console_log "Usage: $0 <start-date-yyyy-mm-dd> <end-date-yyyy-mm-dd> <author-name> <repo_url_1> [repo_url_2 ... repo_url_N]" >&2
   exit 1
 fi
 
@@ -57,11 +56,14 @@ process_commit() {
   fi
   PROCESSED_COMMITS[$commit_hash]=1
 
-  local stats=$(git show --numstat "$commit_hash" 2>> "$LOG_FILE")
+  local stats
+  stats=$(git show --numstat "$commit_hash" 2>> "$LOG_FILE")
 
   # Parse added and removed lines, filtering only numeric values
-  local added=$(echo "$stats" | awk '$1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ {added += $1} END {print added}')
-  local removed=$(echo "$stats" | awk '$1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ {removed += $2} END {print removed}')
+  local added
+  added=$(echo "$stats" | awk '$1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ {added += $1} END {print added}')
+  local removed
+  removed=$(echo "$stats" | awk '$1 ~ /^[0-9]+$/ && $2 ~ /^[0-9]+$/ {removed += $2} END {print removed}')
 
   # Default to 0 if values are empty
   added=${added:-0}
@@ -80,9 +82,9 @@ process_branch() {
   console_and_file_log "Processing branch: $branch"
 
   # Find commits by author in the date range
-  local commits=$(git log "$branch" --author="$AUTHOR" --since="$START_DATE 00:00:00" --until="$END_DATE 23:59:59" --no-merges --pretty=format:"%H %s" 2>> "$LOG_FILE")
+  local commits
+  commits=$(git log "$branch" --author="$AUTHOR" --since="$START_DATE 00:00:00" --until="$END_DATE 23:59:59" --no-merges --pretty=format:"%H %s" 2>> "$LOG_FILE")
   
-
   if [ -z "$commits" ]; then
     file_log "No commits found for author '$AUTHOR' on branch '$branch'."
     return
@@ -90,8 +92,10 @@ process_branch() {
 
   # Process each commit
   while read -r line; do
-    local commit_hash=$(echo "$line" | awk '{print $1}')
-    local commit_message=$(echo "$line" | cut -d' ' -f2-)
+    local commit_hash
+    commit_hash=$(echo "$line" | awk '{print $1}')
+    local commit_message
+    commit_message=$(echo "$line" | cut -d' ' -f2-)
     process_commit "$commit_hash" "$commit_message"
   done <<< "$commits"
 }
@@ -158,11 +162,10 @@ process_repository_url() {
     process_branch "$branch"
   done
 
-  cd "$PROJECTS_DIR"
-  cd ..
+  cd "$PROJECTS_DIR" || return 1
+  cd .. || return 1
   rm -rf "./$PROJECTS_DIR"
 }
-
 
 process_repository() {
   local repo_path=$1
@@ -183,14 +186,16 @@ process_repository() {
     return
   fi
 
-  local default_remote=$(git remote | grep -E "^origin$" || git remote | head -n1)
+  local default_remote
+  default_remote=$(git remote | grep -E "^origin$" || git remote | head -n1)
   if [ -z "$default_remote" ]; then
     console_and_file_log "Error: No remote found in repository."
     return
   fi
 
   # Get all branches for the current remote
-  local branches=$(git branch -r | awk -v remote="$default_remote" '!/->/ && $1 ~ "^"remote"/" {sub("^"remote"/", ""); print}')
+  local branches
+  branches=$(git branch -r | awk -v remote="$default_remote" '!/->/ && $1 ~ "^"remote"/" {sub("^"remote"/", ""); print}')
 
   # Process each branch
   for branch in $branches; do
