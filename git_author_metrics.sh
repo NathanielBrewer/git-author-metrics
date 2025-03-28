@@ -164,7 +164,7 @@ process_repository_url() {
 
   cd "$PROJECTS_DIR" || return 1
   cd .. || return 1
-  rm -rf "./$PROJECTS_DIR"
+  rm -rf "$PROJECTS_DIR"
 }
 
 process_repository() {
